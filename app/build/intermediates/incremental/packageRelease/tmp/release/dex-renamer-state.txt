@@ -1,0 +1,4 @@
+#Fri Oct 23 23:13:57 WGST 2026
+base.0=D\:\\STAND BY\\PROJET RAY ASSIST FINAL\\app\\build\\intermediates\\dex\\release\\minifyReleaseWithR8\\classes.dex
+renamed.0=classes.dex
+path.0=classes.dex

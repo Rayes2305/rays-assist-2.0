@@ -1,0 +1,2330 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ray Assist 2.0</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#070d19">
+
+    <!-- Supabase JS Client SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Google Fonts pour une typographie moderne -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-dark: #070d19;
+            --bg-gradient: linear-gradient(135deg, #070d19 0%, #0d172a 100%);
+            --card-bg: rgba(15, 25, 46, 0.85);
+            --card-border: rgba(30, 45, 74, 0.8);
+            --card-hover-border: rgba(56, 189, 248, 0.5);
+            --primary: #2563eb;
+            --primary-gradient: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            --text-main: #e2e8f0; 
+            --text-highlight: #f0f9ff; 
+            --text-muted: #7888a2;
+            --success: #10b981;
+            --warning-timer: #a855f7;
+            --danger: #ef4444;
+            --accent-blue: #38bdf8;
+            --accent-purple: #8b5cf6;
+            --brand-gradient: linear-gradient(90deg, #38bdf8 0%, #8b5cf6 100%);
+            --shadow-glow: 0 0 25px rgba(37, 99, 235, 0.25);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: var(--bg-dark);
+            background-image: var(--bg-gradient);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .app-viewport {
+            width: 100%;
+            max-width: 480px;
+            background: var(--bg-dark);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            min-height: 100vh;
+            box-shadow: 0 0 40px rgba(0,0,0,0.6);
+        }
+
+        .view {
+            display: none;
+            padding: 20px 16px;
+            flex-direction: column;
+            gap: 16px;
+            width: 100%;
+            animation: fadeIn 0.25s ease-in-out;
+        }
+        .view.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--card-border);
+            margin-bottom: 8px;
+        }
+        .header-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-highlight);
+            text-align: center;
+            flex-grow: 1;
+            letter-spacing: 0.5px;
+        }
+        .btn-back, .btn-logout, .btn-refresh, .btn-top-icon {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            color: var(--accent-blue);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 6px 12px;
+            transition: all 0.2s ease;
+        }
+        .btn-back:active, .btn-logout:active, .btn-refresh:active, .btn-top-icon:active {
+            transform: scale(0.95);
+            background: rgba(56, 189, 248, 0.2);
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 20px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid transparent;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        
+        .dashboard-btn {
+            width: 88%;
+            max-width: 320px;
+            margin: 0 auto;
+            padding: 12px 16px;
+            font-size: 0.9rem;
+            border-radius: 14px;
+        }
+
+        .btn-primary { 
+            background: var(--primary-gradient); 
+            color: #ffffff; 
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.35);
+        }
+        .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
+
+        .btn-menu-claims {
+            background: rgba(56, 189, 248, 0.08);
+            border-color: rgba(56, 189, 248, 0.3);
+            color: #38bdf8;
+        }
+        .btn-menu-payment {
+            background: rgba(16, 185, 129, 0.08);
+            border-color: rgba(16, 185, 129, 0.3);
+            color: #34d399;
+        }
+        .btn-menu-referral {
+            background: rgba(139, 92, 246, 0.08);
+            border-color: rgba(139, 92, 246, 0.3);
+            color: #a78bfa;
+        }
+        .btn-menu-admin {
+            background: rgba(251, 146, 60, 0.08);
+            border-color: rgba(251, 146, 60, 0.3);
+            color: #fb923c;
+        }
+        .btn-menu-config {
+            background: rgba(148, 163, 184, 0.08);
+            border-color: rgba(148, 163, 184, 0.3);
+            color: #cbd5e1;
+        }
+        .btn-menu-about {
+            background: rgba(99, 102, 241, 0.08);
+            border-color: rgba(99, 102, 241, 0.3);
+            color: #818cf8;
+        }
+
+        .btn-success { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; }
+        .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #ffffff; }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .input-group label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+        .input-field {
+            background-color: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 13px 15px;
+            color: var(--text-highlight);
+            font-size: 0.92rem;
+            width: 100%;
+            transition: all 0.2s ease;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            background-color: rgba(56, 189, 248, 0.08);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+        }
+
+        select.input-field {
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            background-size: 16px;
+            padding-right: 40px;
+            cursor: pointer;
+        }
+        select.input-field option {
+            background-color: #0d172a;
+            color: var(--text-highlight);
+            padding: 12px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .stat-box {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 14px 8px;
+            text-align: center;
+        }
+        .stat-icon { font-size: 1.3rem; margin-bottom: 4px; }
+        .stat-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .stat-value { font-family: 'Space Grotesk', sans-serif; font-size: 1.5rem; font-weight: 700; color: var(--text-highlight); }
+        .stat-unit { font-size: 0.7rem; color: var(--text-muted); }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .progress-bar-fill-waiting {
+            height: 100%;
+            background: linear-gradient(90deg, #8b5cf6, #c084fc);
+            transition: width 0.3s ease;
+        }
+
+        .code-display {
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px dashed var(--accent-blue);
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: var(--accent-blue);
+        }
+
+        .brand-footer {
+            text-align: center;
+            margin-top: auto;
+            padding: 14px 0;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 1.8px;
+            background: var(--brand-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+        }
+        .brand-subtext {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+            text-transform: none;
+            -webkit-text-fill-color: var(--text-muted);
+        }
+
+        .email-card-box {
+            background: rgba(56, 189, 248, 0.05);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            border-radius: 14px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+        .email-card-box:active { transform: scale(0.98); background: rgba(56, 189, 248, 0.15); }
+
+        .whatsapp-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 2px;
+        }
+        .whatsapp-btn-card {
+            background: rgba(16, 185, 129, 0.06);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 12px;
+            padding: 10px 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .whatsapp-btn-card:active {
+            transform: scale(0.96);
+            background: rgba(16, 185, 129, 0.18);
+        }
+        .wa-tag {
+            font-size: 0.6rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #34d399;
+            background: rgba(16, 185, 129, 0.15);
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+        .wa-num {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: var(--text-highlight);
+        }
+
+        .guide-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            text-align: left;
+        }
+        .guide-title {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 600;
+            font-size: 0.88rem;
+            color: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: 0.2px;
+        }
+        .guide-text {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .admin-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 100;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: #0f192e;
+            border: 1px solid var(--card-border);
+            border-radius: 18px;
+            padding: 22px;
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            box-shadow: var(--shadow-glow);
+        }
+
+        #lightbox-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.92);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+        #lightbox-modal.active { display: flex; }
+        #lightbox-modal img {
+            max-width: 100%;
+            max-height: 90vh;
+            border-radius: 12px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-viewport">
+
+    <!-- LIGHTBOX (ZOOM IMAGE) -->
+    <div id="lightbox-modal" onclick="closeLightbox()">
+        <img id="lightbox-img" src="" alt="Agrandissement">
+    </div>
+
+    <!-- 1. AUTHENTIFICATION -->
+    <div id="view-auth" class="view active">
+        <div style="text-align: center; margin-top: 40px; margin-bottom: 10px;">
+            <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 24px; padding: 28px 20px; display: inline-block; box-shadow: var(--shadow-glow); width: 100%;">
+                <h1 style="font-family: 'Space Grotesk', sans-serif; font-size: 2.5rem; font-weight: 700; color: var(--text-highlight); letter-spacing: 0.5px;">
+                    Ray Assist <span style="background: var(--brand-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">2.0</span>
+                </h1>
+                <div class="brand-footer" style="padding: 6px 0 0 0;">RAY DIGITAL SERVICE</div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin: 12px 0 8px 0;">
+            <h2 style="font-size: 1.3rem; color: var(--text-highlight); font-weight: 600;">Bienvenue</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Connectez-vous à votre espace personnel</p>
+        </div>
+
+        <div class="card">
+            <div class="input-group">
+                <label>E-mail</label>
+                <input type="email" id="auth-email" class="input-field" placeholder="exemple@mail.com">
+            </div>
+
+            <div class="input-group">
+                <label>Mot de passe</label>
+                <div style="position: relative;">
+                    <input type="password" id="auth-password" class="input-field" placeholder="••••••••">
+                    <button onclick="togglePasswordVisibility()" style="position: absolute; right: 12px; top: 12px; background: none; border: none; color: var(--text-muted); cursor: pointer;">👁️</button>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="login()">➔] Se connecter</button>
+            <button class="btn btn-menu-claims" onclick="openRegisterModal()">+👤 Créer un compte</button>
+        </div>
+    </div>
+
+    <!-- 2. TABLEAU DE BORD -->
+    <div id="view-dashboard" class="view">
+        <div class="header-bar" style="justify-content: space-between; align-items: flex-start; padding-bottom: 12px;">
+            <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px;">
+                <button class="btn-top-icon" onclick="navigateTo('view-profile')" title="Mon Compte" style="padding: 6px 10px;">👤</button>
+                <button class="btn-top-icon" onclick="navigateTo('view-chat')" title="Discussion Communautaire" style="padding: 6px 10px; background: rgba(6, 182, 212, 0.1); border-color: rgba(6, 182, 212, 0.3); color: #22d3ee;">💬</button>
+            </div>
+            
+            <span class="header-title" style="margin: 0; align-self: center;">Tableau de bord</span>
+            
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <button class="btn-logout" onclick="logout()" title="Se déconnecter" style="width: fit-content; padding: 6px 10px;">➔]</button>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-bottom: 2px;">
+            <h2 style="font-family: 'Space Grotesk', sans-serif; font-size: 1.5rem; color: var(--accent-blue); font-weight: 700;">Ray Assist 2.0</h2>
+            <p style="font-size: 0.8rem; color: var(--text-muted);">Votre assistant de gestion des claims</p>
+        </div>
+
+        <div id="dashboard-expired-alert" class="card" style="display: none; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.4); padding: 14px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 1.8rem;">🔔</span>
+                <div>
+                    <div style="font-weight: 700; color: var(--danger); font-size: 0.95rem;">Abonnement Expiré !</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Vos claims sont actuellement bloqués. Effectuez un règlement pour continuer.</div>
+                </div>
+            </div>
+            <button class="btn btn-danger" style="padding: 8px 12px; font-size: 0.8rem; margin-top: 4px;" onclick="navigateTo('view-payment')">💳 Renouveler maintenant</button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-label">Aujourd'hui</div>
+                <div class="stat-value" id="stat-today">0</div>
+                <div class="stat-unit">claims</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-icon">📅</div>
+                <div class="stat-label">Semaine</div>
+                <div class="stat-value" id="stat-week">0</div>
+                <div class="stat-unit">claims</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-icon">🗓️</div>
+                <div class="stat-label">Ce mois</div>
+                <div class="stat-value" id="stat-month">0</div>
+                <div class="stat-unit">claims</div>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
+            <button class="btn btn-menu-claims dashboard-btn" onclick="navigateTo('view-claims')">📋 CLAIMS DISPONIBLES</button>
+            <button class="btn btn-menu-payment dashboard-btn" onclick="navigateTo('view-payment')">💳 ABONNEMENT & PAIEMENT</button>
+            <button class="btn btn-menu-referral dashboard-btn" onclick="navigateTo('view-referral')">👥 PROGRAMME PARRAINAGE</button>
+            <button id="btn-admin-panel" class="btn btn-menu-admin dashboard-btn" style="display: none;" onclick="navigateTo('view-admin')">🛡️ ADMINISTRATION</button>
+            <button class="btn btn-menu-config dashboard-btn" onclick="navigateTo('view-config')">⚙️ CONFIGURATION & SONS</button>
+            <button class="btn btn-menu-about dashboard-btn" onclick="navigateTo('view-about')">ℹ️ À PROPOS & COMMENT ÇA MARCHE ?</button>
+        </div>
+
+        <div class="brand-footer">
+            RAY DIGITAL SERVICE
+            <div class="brand-subtext">Digital Solutions & Assistance</div>
+        </div>
+    </div>
+
+    <!-- 3. CLAIMS DISPONIBLES -->
+    <div id="view-claims" class="view">
+        <div class="header-bar">
+            <button class="btn-back" onclick="navigateTo('view-dashboard')">←</button>
+            <span class="header-title">Claims disponibles</span>
+        </div>
+
+        <div id="active-claim-box" class="card" style="text-align: center; border-color: var(--primary); display: none; box-shadow: var(--shadow-glow);">
+            <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">En cours de réclamation</div>
+            <div id="current-site-name" style="font-family: 'Space Grotesk', sans-serif; font-size: 1.4rem; font-weight: 700; color: var(--accent-blue); margin: 4px 0;">-</div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">Fermez l'onglet du captcha pour enchaîner automatiquement.</p>
+            <button id="btn-manual-next" class="btn btn-success" style="padding: 10px; font-size: 0.85rem;" onclick="proceedToNextSite()">▶ Ouvrir le site suivant manuellement</button>
+        </div>
+
+        <div id="faucet-cards-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
+    </div>
+
+    <!-- 3.1 DISCUSSION / CHAT COMMUNAUTAIRE -->
+    <div id="view-chat" class="view" style="min-height: 82vh; justify-content: space-between;">
+        <div class="header-bar">
+            <button class="btn-back" onclick="navigateTo('view-dashboard')">←</button>
+            <span class="header-title">Discussion</span>
+            <button class="btn-refresh" onclick="loadChatMessages()">🔄</button>
+        </div>
+
+        <div id="chat-network-status" style="font-size: 0.75rem; text-align: center; color: var(--text-muted); padding: 6px; background: rgba(255,255,255,0.02); border-radius: 8px;">
+            Connexion au chat...
+        </div>
+
+        <div id="chat-messages-container" class="card" style="flex-grow: 1; max-height: 52vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 12px; margin: 4px 0;">
+            <em style="text-align: center; color: var(--text-muted);">Chargement des messages...</em>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div id="chat-image-preview-container" style="display: none; align-items: center; gap: 8px; background: rgba(56, 189, 248, 0.1); border: 1px solid var(--accent-blue); padding: 8px; border-radius: 10px;">
+                <span style="font-size: 0.8rem; color: var(--accent-blue); font-weight: bold;">📷 Capture d'écran prête</span>
+                <button onclick="clearChatImage()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 0.9rem; margin-left: auto;">✕ Retirer</button>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <input type="file" id="chat-file-input" accept="image/*" style="display: none;" onchange="handleChatImageSelect(event)">
+                <button class="btn btn-menu-config" style="width: 48px; flex-shrink: 0; padding: 0; font-size: 1.2rem;" onclick="document.getElementById('chat-file-input').click()" title="Joindre une capture d'écran">📷</button>
+                <input type="text" id="chat-input" class="input-field" placeholder="Écrivez un message..." onkeypress="handleChatKeyPress(event)">
+                <button class="btn btn-primary" style="width: 80px; flex-shrink: 0;" onclick="sendChatMessage()">Envoyer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.2 DÉCLARATION DE PAIEMENT -->
+    <div id="view-payment" class="view">
+        <div class="header-bar">
+            <button class="btn-back" onclick="navigateTo('view-dashboard')">←</button>
+            <span class="header-title">Abonnement & Paiement</span>
+        </div>
+
+        <div class="card" style="background: linear-gradient(135deg, rgba(15, 25, 46, 0.9) 0%, rgba(30, 41, 59, 0.7) 100%); border-color: rgba(56, 189, 248, 0.3);">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.2rem;">💎</span>
+                <div style="font-weight: 700; color: var(--accent-blue); font-size: 0.95rem;">Statut de votre abonnement</div>
+            </div>
+            <div style="font-size: 0.9rem; padding-left: 28px;" id="user-sub-status-text">Chargement du statut...</div>
+        </div>
+
+        <div class="card" style="gap: 18px;">
+            <div>
+                <div style="font-weight: 700; color: var(--text-highlight); font-size: 1.05rem;">Déclarer un règlement</div>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; line-height: 1.4;">
+                    Effectuez votre paiement (6 000 Ar / mois), puis renseignez la référence ci-dessous.
+                </p>
+            </div>
+
+            <div class="input-group">
+                <label>Durée souhaitée</label>
+                <select id="pay-months" class="input-field" onchange="updateCalculatedAmount()">
+                    <option value="1">1 Mois (6 000 Ar)</option>
+                    <option value="2">2 Mois (12 000 Ar)</option>
+                    <option value="3">3 Mois (18 000 Ar)</option>
+                    <option value="4">4 Mois (24 000 Ar)</option>
+                    <option value="5">5 Mois (30 000 Ar)</option>
+                    <option value="6">6 Mois (36 000 Ar)</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Montant à régler</label>
+                <input type="text" id="pay-amount-display" class="input-field" readonly value="6 000 Ar" style="font-weight: 700; color: var(--success); background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.3);">
+            </div>
+
+            <div class="input-group">
+                <label>Mode de paiement</label>
+                <select id="pay-mode" class="input-field">
+                    <option value="Mobile Money (Mvola / Orange / Airtel)">Mobile Money (Mvola / Orange / Airtel)</option>
+                    <option value="Virement Bancaire">Virement Bancaire</option>
+                    <option value="Espèces / Autre">Espèces / Autre</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Référence Transaction (TX Ref)</label>
+                <input type="text" id="pay-tx-ref" class="input-field" placeholder="Ex: TX-987654321">
+            </div>
+
+            <div class="input-group">
+                <label>Preuve de paiement (Optionnelle)</label>
+                <div class="file-input-wrapper">
+                    <input type="file" id="pay-proof-file" accept="image/*,application/pdf" style="width:100%; padding:10px; background:rgba(15,23,42,0.6); border:1px solid var(--card-border); border-radius:12px; color:var(--text-highlight); cursor:pointer;">
+                </div>
+            </div>
+
+            <button class="btn btn-success" style="margin-top: 6px; padding: 15px;" onclick="submitPaymentDeclaration()">
+                📤 Envoyer la déclaration
+            </button>
+        </div>
+    </div>
+<!-- 3.3 MON COMPTE & PROFIL -->
+    <div id="view-profile" class="view">
+        <div class="header-bar">
+            <button class="btn-back" onclick="navigateTo('view-dashboard')">←</button>
+            <span class="header-title">Mon Compte</span>
+        </div>
+
+        <div class="card">
+            <div style="font-weight: 700; color: var(--accent-blue);">Informations du profil</div>
+            <p style="font-size: 0.8rem; color: var(--text-muted);">Personnalisez votre pseudo pour qu'il s'affiche dans les discussions à la place de votre e-mail.</p>
+
+            <form id="profile-form" onsubmit="saveUserProfileData(event)">
+                <div class="input-group">
+                    <label>Adresse e-mail</label>
+                    <input type="email" id="profile-email-display" class="input-field" disabled style="background: rgba(255,255,255,0.02); color: var(--text-muted);">
+                </div>
+
+                <div class="input-group" style="margin-top: 10px;">
+                    <label>Nom complet</label>
+                    <input type="text" id="profile-fullname-input" class="input-field" placeholder="Votre nom complet">
+                </div>
+
+                <div class="input-group" style="margin-top: 10px;">
+                    <label>Pseudo (Affiché dans le chat)</label>
+                    <input type="text" id="profile-pseudo-input" class="input-field" placeholder="Ex: RayUser99">
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="margin-top: 14px;">Enregistrer les modifications</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4. MENU PRINCIPAL D'ADMINISTRATION -->
+    <div id="view-admin" class="view">
+        <div class="header-bar">
+            <button class="btn-back" onclick="navigateTo('view-dashboard')">←</button>
+            <span class="header-title">Administration</span>
+            <button class="btn-refresh" onclick="renderAdminData()">🔄</button>
+        </div>
+
+        <div class="card" style="text-align: center; align-items: center; border-color: var(--accent-purple);">
+            <div style="width: 50px; height: 50px; border-radius: 50%; background: rgba(139, 92, 246, 0.15); border: 1px solid var(--accent-purple); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--accent-purple);">
+                🛡️
+            </div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.2rem; letter-spacing: 0.5px; color: var(--text-highlight);">ADMINISTRATION</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Gestion de Ray Assist 2.0</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button class="btn btn-menu-claims" onclick="navigateTo('view-admin-users')">👥 UTILISATEURS</button>
+            <button class="btn btn-menu-config" onclick="navigateTo('view-admin-payments')">🧾 PAIEMENTS</button>
+            <button class="btn btn-menu-payment" onclick="navigateTo('view-admin-subscriptions')">💳 ABONNEMENTS</button>
+            <button class="btn btn-menu-referral" onclick="navigateTo('view-admin-referrals')">🤝 PARRAINAGES</button>
+            <button class="btn btn-menu-admin" onclick="navigateTo('view-admin-stats')">📊 STATISTIQUES</button>
+        </div>
+    </div>
+
+    <!-- 4.1 ADMIN: UTILISATEURS -->
+    <div id="view-admin-users" class="view">
+        <div class="header-bar">
+            <button class="btn-back" onclick="navigateTo('view-admin')">←</button>
+            <span class="header-title">Utilisateurs</span>
+        </div>
+        <div class="card">
+            <div style="font-weight: 700; color: var(--text-highlight);">Liste des comptes inscrits</div>
+            <div id="admin-users-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+    </div>
+
+    <!-- 4.2 ADMIN: PAIEMENTS EN ATTENTE -->
+    <div id="view-admin-payments" class="view">
+        <div class="header-bar">
+            <button class="btn-back" onclick="navigateTo('view-admin')">←</button>
+            <span class="header-title">Validation Paiements</span>
+        </div>
+        <div id="admin-payments-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
+    </div>
+
+    <!-- 4.3 ADMIN: ABONNEMENTS -->
+    <div id="view-admin-subscriptions" class="view">
+        <div class="header-bar">
+            <button class="btn-back" onclick="navigateTo('view-admin')">←</button>
+            <span class="header-title">Abonnements</span>
+        </div>
+        <div class="card">
+            <div style="font-weight: 700; color: var(--text-highlight);">État des abonnements membres</div>
+            <div id="admin-subscriptions-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+    </div>
+
+    <!-- 4.4 ADMIN: PARRAINAGES -->
+    <div id="view-admin-referrals" class="view">
+        <div class="header-bar">
+            <button class="btn-back" onclick="navigateTo('view-admin')">←</button>
+            <span class="header-title">Parrainages</span>
+        </div>
+        <div class="card">
+            <div style="font-weight: 700; color: var(--text-highlight);">Réseaux & Crédits</div>
+            <div id="admin-referrals-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+    </div>
+
+    <!-- 4.5 ADMIN: STATISTIQUES & FINANCES -->
+    <div id="view-admin-stats" class="view">
+        <div class="header-bar">
+            <button class="btn-back" onclick="navigateTo('view-admin')">←</button>
+            <span class="header-title">Statistiques & Finances</span>
+        </div>
+        <div class="card">
+            <div style="font-weight: 700; color: var(--text-highlight);">Aperçu Global</div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                <span>Total Utilisateurs :</span>
+                <strong id="stat-total-users" style="color: var(--text-highlight);">0</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                <span>Abonnements Actifs :</span>
+                <strong id="stat-active-subs" style="color: var(--text-highlight);">0</strong>
+            </div>
+            <hr style="border: 0; border-top: 1px solid var(--card-border);">
+            <div style="font-weight: 700; color: var(--success);">Côté Finance (Recettes)</div>
+            <div style="display: flex; justify-content: space-between; font-size: 1.1rem; font-weight: 800;">
+                <span>Total Encaissé :</span>
+                <span id="stat-total-revenue" style="color: var(--success);">0 Ar</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. PARRAINAGE -->
+    <div id="view-referral" class="view">
+        <div class="header-bar">
+            <button class="btn-back" onclick="navigateTo('view-dashboard')">←</button>
+            <span class="header-title">Parrainage</span>
+        </div>
+
+        <div class="card">
+            <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; text-transform: uppercase;">Mon code de parrainage</div>
+            <div class="code-display" id="my-ref-code">CHARGEMENT...</div>
+
+            <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-top: 8px; text-transform: uppercase;">Mon lien de parrainage</div>
+            <input type="text" id="my-ref-link" class="input-field" readonly value="" style="text-align: center; font-size: 0.8rem; color: var(--accent-blue);">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px;">
+                <button class="btn btn-menu-claims" onclick="copyRefLink()">📋 Copier</button>
+                <button class="btn btn-menu-referral" onclick="shareRefLink()">🔗 Partager</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="font-weight: 700; color: var(--text-highlight);">Mes filleuls (<span id="ref-count">0</span>)</div>
+            <div id="referrals-list" style="font-size: 0.85rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 8px;">
+                <em>Chargement...</em>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. CONFIGURATION -->
+    <div id="view-config" class="view">
+        <div class="header-bar">
+            <button class="btn-back" onclick="navigateTo('view-dashboard')">←</button>
+            <span class="header-title">Configuration</span>
+        </div>
+
+        <div class="card">
+            <div style="font-weight: 700; color: var(--accent-blue);">🔔 Paramètres des Sons & Alertes</div>
+            
+            <div class="input-group">
+                <label>Statut des rappels</label>
+                <select id="config-notifications" class="input-field">
+                    <option value="enabled">Activé</option>
+                    <option value="disabled">Désactivé</option>
+                </select>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid var(--card-border); margin: 4px 0;">
+
+            <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-highlight);">💬 Son des Notifications (Chat / Divers)</div>
+            <div class="input-group">
+                <label>Choisir une sonnerie</label>
+                <select id="config-sound-notif" class="input-field">
+                    <option value="swift">Swift Gesture</option>
+                    <option value="kalimba">Kalimba Doux</option>
+                    <option value="sonar">Sonar</option>
+                    <option value="new_notif">Notification Moderne</option>
+                    <option value="custom">📁 Importer un son personnel (MP3/WAV)</option>
+                </select>
+            </div>
+            <div class="input-group" id="group-custom-notif" style="display:none;">
+                <label>Fichier audio local (Notification)</label>
+                <input type="file" id="file-custom-notif" class="input-field" accept="audio/*">
+            </div>
+            <button class="btn btn-menu-config" style="padding: 8px; font-size: 0.8rem;" onclick="testSound('notif')">▶ Tester le son Notification</button>
+
+            <hr style="border: 0; border-top: 1px solid var(--card-border); margin: 4px 0;">
+
+            <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-highlight);">⏰ Son des Rappels de Claim</div>
+            <div class="input-group">
+                <label>Choisir une sonnerie d'alerte</label>
+                <select id="config-sound-claim" class="input-field">
+                    <option value="beep">Bip d'alerte</option>
+                    <option value="wet">Son Humide (Wet)</option>
+                    <option value="when">When Sonore</option>
+                    <option value="exquisite">Exquisite</option>
+                    <option value="for_sure">For Sure</option>
+                    <option value="intuition">Intuition</option>
+                    <option value="custom">📁 Importer un son personnel (MP3/WAV)</option>
+                </select>
+            </div>
+            <div class="input-group" id="group-custom-claim" style="display:none;">
+                <label>Fichier audio local (Claim)</label>
+                <input type="file" id="file-custom-claim" class="input-field" accept="audio/*">
+            </div>
+            <button class="btn btn-menu-config" style="padding: 8px; font-size: 0.8rem;" onclick="testSound('claim')">▶ Tester le son Claim</button>
+
+            <div class="input-group" style="margin-top: 6px;">
+                <label>Volume général des sons</label>
+                <input type="range" id="config-volume" class="input-field" min="0" max="100" value="80" style="padding: 6px;">
+            </div>
+
+            <button class="btn btn-primary" style="padding: 12px; font-size: 0.9rem; margin-top: 6px;" onclick="saveNotificationConfig()">💾 Enregistrer les préférences</button>
+        </div>
+
+        <div class="card">
+            <div style="font-weight: 700; color: var(--accent-blue);">➕ Ajouter un Faucet / Doublon</div>
+            <div class="input-group">
+                <label>Nom du site</label>
+                <input type="text" id="new-site-name" class="input-field" placeholder="Nom (ex: TronLux Compte 2)">
+            </div>
+            <div class="input-group">
+                <label>URL du site</label>
+                <input type="url" id="new-site-url" class="input-field" placeholder="URL (ex: https://tronlux.io/faucet.php)">
+            </div>
+            <button class="btn btn-primary" onclick="addNewSite()">Ajouter à la liste</button>
+        </div>
+    </div>
+
+    <!-- 7. À PROPOS ET COMMENT ÇA MARCHE ? -->
+    <div id="view-about" class="view">
+        <div class="header-bar">
+            <button class="btn-back" onclick="navigateTo('view-dashboard')">←</button>
+            <span class="header-title">À propos</span>
+        </div>
+
+        <div class="card" style="padding: 16px; text-align: center; gap: 10px;">
+            <div>
+                <div class="brand-footer" style="padding: 0; font-size: 1.15rem;">RAY DIGITAL SERVICE</div>
+                <div class="brand-subtext" style="margin-top: 2px;">Digital Solutions & Assistance</div>
+            </div>
+
+            <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--card-border); padding: 8px; border-radius: 10px;">
+                <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px;">Développé par</div>
+                <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1rem; color: var(--text-highlight);">Ndriamparany Joel</div>
+            </div>
+
+            <a href="mailto:inforayes@gmail.com" class="email-card-box">
+                ✉️ inforayes@gmail.com
+            </a>
+
+            <div class="whatsapp-grid">
+                <a href="https://wa.me/261345250652" target="_blank" class="whatsapp-btn-card">
+                    <span class="wa-tag">WhatsApp 1</span>
+                    <span class="wa-num">034 52 506 52</span>
+                </a>
+                <a href="https://wa.me/261376703254" target="_blank" class="whatsapp-btn-card">
+                    <span class="wa-tag">WhatsApp 2</span>
+                    <span class="wa-num">037 67 032 54</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="card" style="gap: 10px; padding: 14px;">
+            <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 1.05rem; color: var(--accent-blue); letter-spacing: 0.5px; font-style: italic; transform: skewX(-6deg);">
+                comment ça marche ?
+            </div>
+
+            <div class="guide-item">
+                <div class="guide-title">📋 claims & faucets</div>
+                <div class="guide-text">Ouvrez vos faucets. Fermez l'onglet du captcha : le minuteur d'1h se lance et l'app prépare le site suivant.</div>
+            </div>
+
+            <div class="guide-item">
+                <div class="guide-title">⏰ rappels sonores</div>
+                <div class="guide-text">Une alerte sonne dès qu'un claim est à nouveau prêt. Personnalisez vos sonneries dans <em>Configuration</em>.</div>
+            </div>
+
+            <div class="guide-item">
+                <div class="guide-title">🤝 parrainage (12 mois)</div>
+                <div class="guide-text">Gagnez <strong>50%</strong> (1er payant) puis <strong>10%</strong> (renouvellements) de réduction valables 12 mois.</div>
+            </div>
+
+            <div class="guide-item">
+                <div class="guide-title">💳 abonnement</div>
+                <div class="guide-text">7 jours d'essai offerts. En cas d'expiration, le compte reste accessible (hors claims). Validation admin rapide.</div>
+            </div>
+
+            <div class="guide-item">
+                <div class="guide-title">💬 chat communautaire</div>
+                <div class="guide-text">Discutez en direct et partagez vos captures d'écran compressées automatiquement.</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- MODAL INSCRIPTION -->
+<div id="modal-register" class="modal">
+    <div class="modal-content">
+        <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.2rem; text-align: center; color: var(--text-highlight);">Créer un compte</div>
+        <div id="ref-detected-banner" style="display: none; background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success); color: var(--success); padding: 8px; border-radius: 10px; font-size: 0.8rem; text-align: center;">
+            🤝 Lien de parrainage détecté et appliqué !
+        </div>
+        <div class="input-group">
+            <label>E-mail</label>
+            <input type="email" id="reg-email" class="input-field" placeholder="votre@email.com">
+        </div>
+        <div class="input-group">
+            <label>Mot de passe</label>
+            <input type="password" id="reg-password" class="input-field" placeholder="••••••••">
+        </div>
+        <div class="input-group">
+            <label>Code de parrainage (Optionnel)</label>
+            <input type="text" id="input-ref-code" class="input-field" placeholder="ex: RAY-7A9B">
+        </div>
+        <button class="btn btn-primary" onclick="confirmRegister()">S'inscrire</button>
+        <button class="btn btn-menu-config" onclick="closeRegisterModal()">Annuler</button>
+    </div>
+</div>
+
+<script>
+    const SUPABASE_URL = 'https://dnohcmqwdarzbnhmmjga.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_IJtk3dK1U7JVLJDVROMB9g__un8Z-oZ';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentUser = null;
+    let userProfile = null;
+    let selectedChatImageFile = null;
+    let notifiedSitesMap = {}; // Suivi pour éviter de répéter le son en boucle
+
+    const soundLibrary = {
+        swift: "https://cdn.freesound.org/previews/608/608316_11861866-lq.mp3",
+        kalimba: "https://cdn.freesound.org/previews/536/536130_11861866-lq.mp3",
+        sonar: "https://cdn.freesound.org/previews/415/415512_5121236-lq.mp3",
+        new_notif: "https://cdn.freesound.org/previews/480/480570_6142179-lq.mp3",
+        beep: "https://cdn.freesound.org/previews/472/472856_9169906-lq.mp3",
+        wet: "https://cdn.freesound.org/previews/431/431718_9169906-lq.mp3",
+        when: "https://cdn.freesound.org/previews/604/604555_9169906-lq.mp3",
+        exquisite: "https://cdn.freesound.org/previews/557/557076_11861866-lq.mp3",
+        for_sure: "https://cdn.freesound.org/previews/576/576147_11861866-lq.mp3",
+        intuition: "https://cdn.freesound.org/previews/561/561332_11861866-lq.mp3"
+    };
+
+    const defaultSites = [
+        { id: "dogepick", name: "DogePick", url: "https://dogepick.io/faucet.php#faucet" },
+        { id: "tonpick", name: "TonPick", url: "https://tonpick.game/faucet.php#faucet" },
+        { id: "solpick", name: "SolPick", url: "https://solpick.io/faucet.php#faucet" },
+        { id: "litepick", name: "LitePick", url: "https://litepick.io/faucet.php#faucet" },
+        { id: "tronpick", name: "TronPick", url: "https://tronpick.io/faucet.php#faucet" },
+        { id: "bnbpick", name: "BNBPick", url: "https://bnbpick.io/faucet.php#faucet" },
+        { id: "suipick", name: "SuiPick", url: "https://suipick.io/faucet.php#faucet" },
+        { id: "usdpick", name: "USDPick", url: "https://usdpick.io/faucet#faucet" },
+        { id: "polpick", name: "PolPick", url: "https://polpick.io/faucet.php#faucet" },
+        { id: "bitpick", name: "BitPick", url: "https://bitpick.io/faucet.php#faucet" },
+        { id: "bchpick", name: "BchPick", url: "https://bchpick.io/faucet.php#faucet" },
+        { id: "tronlux", name: "TronLux", url: "https://tronlux.io/faucet.php#faucet" },
+        { id: "shibalux", name: "ShibaLux", url: "https://shibalux.io/faucet.php#faucet" },
+        { id: "usdtlux", name: "UsdtLux", url: "https://usdtlux.io/faucet.php#faucet" },
+        { id: "btclux", name: "BtcLux", url: "https://btclux.io/faucet.php#faucet" },
+        { id: "xrplux", name: "XrpLux", url: "https://xrplux.io/faucet.php#faucet" },
+        { id: "pepelux", name: "PepeLux", url: "https://pepelux.io/faucet.php#faucet" },
+        { id: "bnblux", name: "BnbLux", url: "https://bnblux.io/faucet.php#faucet" }
+    ];
+
+    let activeWindow = null;
+
+    function isSubscriptionValid() {
+        if (!userProfile) return true;
+        if (userProfile.is_admin) return true;
+        const now = new Date();
+        const expiresAt = userProfile.subscription_expires_at ? new Date(userProfile.subscription_expires_at) : null;
+        return (expiresAt && now <= expiresAt);
+    }
+
+    function checkDashboardAlert() {
+        const alertBox = document.getElementById('dashboard-expired-alert');
+        if (!alertBox) return;
+        if (!isSubscriptionValid()) {
+            alertBox.style.display = 'flex';
+        } else {
+            alertBox.style.display = 'none';
+        }
+    }
+
+    function navigateTo(viewId) {
+        if (viewId === 'view-claims' && !isSubscriptionValid()) {
+            showSubscriptionExpiredModal(userProfile ? userProfile.pending_discount || 0 : 0);
+            return;
+        }
+
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+
+        if (viewId === 'view-dashboard') {
+            checkDashboardAlert();
+        }
+        if (viewId.startsWith('view-admin')) {
+            renderAdminData();
+        }
+        if (viewId === 'view-payment') {
+            loadUserSubscriptionStatus();
+        }
+        if (viewId === 'view-referral') {
+            loadUserReferrals();
+        }
+        if (viewId === 'view-profile') {
+            loadProfileUI();
+        }
+        if (viewId === 'view-chat') {
+            loadChatMessages();
+        }
+        if (viewId === 'view-config') {
+            loadConfigUI();
+        }
+        render();
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        let refCode = urlParams.get('ref') || urlParams.get('rds');
+
+        if (refCode) {
+            refCode = refCode.trim().toUpperCase();
+            localStorage.setItem('pending_ref_code', refCode);
+        } else {
+            refCode = localStorage.getItem('pending_ref_code');
+        }
+
+        if (refCode) {
+            const refInput = document.getElementById('input-ref-code');
+            const banner = document.getElementById('ref-detected-banner');
+            if (refInput) refInput.value = refCode;
+            if (banner) banner.style.display = 'block';
+        }
+
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+            currentUser = session.user;
+            await loadUserProfile();
+            navigateTo('view-dashboard');
+        } else {
+            navigateTo('view-auth');
+            if (refCode) {
+                openRegisterModal();
+            }
+        }
+
+        document.getElementById('config-sound-notif').addEventListener('change', (e) => {
+            document.getElementById('group-custom-notif').style.display = (e.target.value === 'custom') ? 'flex' : 'none';
+        });
+        document.getElementById('config-sound-claim').addEventListener('change', (e) => {
+            document.getElementById('group-custom-claim').style.display = (e.target.value === 'custom') ? 'flex' : 'none';
+        });
+
+        supabaseClient
+            .channel('public:app_messages')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'app_messages' }, payload => {
+                const chatView = document.getElementById('view-chat');
+                if (chatView && chatView.classList.contains('active')) {
+                    loadChatMessages();
+                }
+                playAlertSound('notif');
+            })
+            .subscribe();
+    });
+
+    function generateRefCode() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let randomPart = '';
+        for (let i = 0; i < 4; i++) {
+            randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return `RAY-${randomPart}`;
+    }
+
+    async function loadUserProfile() {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session || !session.user) return;
+        
+        currentUser = session.user;
+
+        if (currentUser.email === "inforayes@gmail.com") {
+            document.getElementById('btn-admin-panel').style.display = 'block';
+        } else {
+            document.getElementById('btn-admin-panel').style.display = 'none';
+        }
+
+        let { data } = await supabaseClient
+            .from('app_profiles')
+            .select('*')
+            .eq('id', currentUser.id);
+
+        let profile = (data && data.length > 0) ? data[0] : null;
+
+        if (!profile || !profile.my_ref_code) {
+            const newRefCode = generateRefCode();
+            const isAdminUser = (currentUser.email === "inforayes@gmail.com");
+            
+            const trialExpiry = new Date();
+            trialExpiry.setDate(trialExpiry.getDate() + 7);
+
+            const { data: insertedData } = await supabaseClient
+                .from('app_profiles')
+                .upsert({
+                    id: currentUser.id,
+                    email: currentUser.email,
+                    my_ref_code: newRefCode,
+                    is_admin: isAdminUser,
+                    subscription_status: isAdminUser ? 'active' : 'trial',
+                    subscription_expires_at: isAdminUser ? null : trialExpiry.toISOString(),
+                    pending_discount: 0
+                })
+                .select();
+
+            if (insertedData && insertedData.length > 0) {
+                profile = insertedData[0];
+            } else {
+                profile = { id: currentUser.id, email: currentUser.email, my_ref_code: newRefCode, is_admin: isAdminUser, subscription_expires_at: trialExpiry.toISOString(), pending_discount: 0 };
+            }
+        }
+
+        userProfile = profile;
+        checkDashboardAlert();
+
+        const baseUrl = window.location.origin + window.location.pathname;
+
+        if (document.getElementById('my-ref-code')) {
+            document.getElementById('my-ref-code').textContent = userProfile.my_ref_code;
+        }
+        if (document.getElementById('my-ref-link')) {
+            document.getElementById('my-ref-link').value = `${baseUrl}?ref=${userProfile.my_ref_code}`;
+        }
+    }
+
+    function showSubscriptionExpiredModal(discount) {
+        const standardMonthlyPrice = 6000;
+        const finalMonthlyPrice = Math.max(0, standardMonthlyPrice - discount);
+
+        let discountInfoHtml = '';
+        if (discount > 0) {
+            discountInfoHtml = `<p style="color: #10b981; font-size: 0.85rem; font-weight: bold; margin-top: 6px;">🎉 Réduction de parrainage appliquée : -${discount.toLocaleString('fr-FR')} Ar !</p>`;
+        }
+
+        const modalHtml = `
+            <div id="subscription-expired-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(7,13,25,0.92); backdrop-filter:blur(8px); display:flex; justify-content:center; align-items:center; z-index:9999; padding: 20px;">
+                <div style="background:var(--card-bg); border:1px solid var(--card-border); border-radius:18px; padding:24px; text-align:center; max-width:400px; width:100%; box-shadow:var(--shadow-glow); display:flex; flex-direction:column; gap:14px;">
+                    <div style="font-size: 2.5rem;">🔔</div>
+                    <h2 style="font-family: 'Space Grotesk', sans-serif; color: var(--text-highlight); font-size: 1.4rem;">Période d'essai ou Abonnement expiré</h2>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">Votre abonnement est arrivé à terme. Pour continuer à accéder aux réclamations de claims, veuillez renouveler votre abonnement.</p>
+                    
+                    <div style="background: rgba(56, 189, 248, 0.08); border: 1px dashed var(--accent-blue); padding: 12px; border-radius: 12px;">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Tarif mensuel</div>
+                        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.6rem; font-weight: 700; color: var(--accent-blue);">${finalMonthlyPrice.toLocaleString('fr-FR')} Ar <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">/ mois</span></div>
+                        ${discountInfoHtml}
+                    </div>
+
+                    <button class="btn btn-primary" onclick="closeExpiredModalAndNavigateToPayment()">💳 Aller vers le paiement</button>
+                    <button class="btn btn-menu-config" onclick="closeExpiredModal()">Fermer</button>
+                </div>
+            </div>
+        `;
+
+        if (!document.getElementById('subscription-expired-modal')) {
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+    }
+
+    function closeExpiredModal() {
+        const modal = document.getElementById('subscription-expired-modal');
+        if (modal) modal.remove();
+    }
+
+    function closeExpiredModalAndNavigateToPayment() {
+        closeExpiredModal();
+        navigateTo('view-payment');
+    }
+
+    async function loadProfileUI() {
+        if (!currentUser) return;
+        document.getElementById('profile-email-display').value = currentUser.email;
+        
+        const { data } = await supabaseClient
+            .from('app_profiles')
+            .select('*')
+            .eq('id', currentUser.id)
+            .single();
+
+        if (data) {
+            document.getElementById('profile-fullname-input').value = data.full_name || '';
+            document.getElementById('profile-pseudo-input').value = data.pseudo || '';
+        }
+    }
+
+    async function saveUserProfileData(event) {
+        event.preventDefault();
+        if (!currentUser) return;
+
+        const full_name = document.getElementById('profile-fullname-input').value.trim();
+        const pseudo = document.getElementById('profile-pseudo-input').value.trim();
+
+        const { error } = await supabaseClient
+            .from('app_profiles')
+            .update({ 
+                full_name: full_name, 
+                pseudo: pseudo, 
+                updated_at: new Date().toISOString() 
+            })
+            .eq('id', currentUser.id);
+
+        if (error) {
+            alert("Erreur lors de la mise à jour : " + error.message);
+        } else {
+            alert("✅ Profil mis à jour avec succès ! Votre pseudo sera affiché dans le chat.");
+            await loadUserProfile();
+            navigateTo('view-dashboard');
+        }
+    }
+
+    async function login() {
+        const email = document.getElementById('auth-email').value.trim();
+        const password = document.getElementById('auth-password').value;
+
+        if (!email || !password) {
+            alert('Veuillez remplir vos identifiants.');
+            return;
+        }
+
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) {
+            alert('Erreur de connexion : ' + error.message);
+            return;
+        }
+
+        currentUser = data.user;
+        await loadUserProfile();
+        navigateTo('view-dashboard');
+    }
+
+    async function logout() {
+        await supabaseClient.auth.signOut();
+        currentUser = null;
+        userProfile = null;
+        navigateTo('view-auth');
+    }
+
+    function openRegisterModal() { document.getElementById('modal-register').classList.add('active'); }
+    function closeRegisterModal() { document.getElementById('modal-register').classList.remove('active'); }
+
+    async function confirmRegister() {
+        const email = document.getElementById('reg-email').value.trim();
+        const password = document.getElementById('reg-password').value;
+        const refCodeInput = document.getElementById('input-ref-code').value.trim();
+
+        if (!email || !password) {
+            alert('Veuillez renseigner un email et un mot de passe.');
+            return;
+        }
+
+        const { data: authData, error: authError } = await supabaseClient.auth.signUp({ email, password });
+
+        if (authError) {
+            alert('Erreur lors de l\'inscription : ' + authError.message);
+            return;
+        }
+
+        const newUser = authData.user;
+        const myRefCode = generateRefCode();
+        const trialExpiry = new Date();
+        trialExpiry.setDate(trialExpiry.getDate() + 7);
+        const isAdminUser = (email === "inforayes@gmail.com");
+
+        await supabaseClient.from('app_profiles').insert([{
+            id: newUser.id,
+            email: email,
+            my_ref_code: myRefCode,
+            is_admin: isAdminUser,
+            subscription_status: isAdminUser ? 'active' : 'trial',
+            subscription_expires_at: isAdminUser ? null : trialExpiry.toISOString(),
+            pending_discount: 0
+        }]);
+
+        if (refCodeInput) {
+            const { data: sponsorData } = await supabaseClient
+                .from('app_profiles')
+                .select('id')
+                .eq('my_ref_code', refCodeInput)
+                .single();
+
+            if (sponsorData) {
+                const eligibilityEndsAt = new Date();
+                eligibilityEndsAt.setFullYear(eligibilityEndsAt.getFullYear() + 1);
+
+                await supabaseClient.from('app_referrals').insert([{
+                    sponsor_id: sponsorData.id,
+                    filleul_id: newUser.id,
+                    eligibility_ends_at: eligibilityEndsAt.toISOString()
+                }]);
+            }
+        }
+
+        localStorage.removeItem('pending_ref_code');
+        alert('Compte créé avec succès ! Veuillez confirmer votre e-mail pour vous connecter.');
+        closeRegisterModal();
+    }
+
+    function togglePasswordVisibility() {
+        const pwd = document.getElementById('auth-password');
+        pwd.type = pwd.type === 'password' ? 'text' : 'password';
+    }
+
+    function updateCalculatedAmount() {
+        const months = parseInt(document.getElementById('pay-months').value) || 1;
+        const monthlyRate = 6000; 
+        let total = months * monthlyRate;
+
+        let discount = (userProfile && userProfile.pending_discount) ? userProfile.pending_discount : 0;
+        if (discount > 0) {
+            total = Math.max(0, total - discount);
+        }
+
+        document.getElementById('pay-amount-display').value = total.toLocaleString('fr-FR') + ' Ar' + (discount > 0 ? ` (Réduction -${discount.toLocaleString('fr-FR')} Ar)` : '');
+    }
+
+    function handleChatImageSelect(event) {
+        const file = event.target.files[0];
+        if (file) {
+            selectedChatImageFile = file;
+            document.getElementById('chat-image-preview-container').style.display = 'flex';
+        }
+    }
+
+    function clearChatImage() {
+        selectedChatImageFile = null;
+        document.getElementById('chat-file-input').value = '';
+        document.getElementById('chat-image-preview-container').style.display = 'none';
+    }
+
+    async function compressImage(file, maxWidth = 800, quality = 0.7) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob((blob) => {
+                        resolve(blob);
+                    }, 'image/jpeg', quality);
+                };
+            };
+        });
+    }
+
+    function openLightbox(url) {
+        document.getElementById('lightbox-img').src = url;
+        document.getElementById('lightbox-modal').classList.add('active');
+    }
+
+    function closeLightbox() {
+        document.getElementById('lightbox-modal').classList.remove('active');
+    }
+
+    async function loadChatMessages() {
+        const container = document.getElementById('chat-messages-container');
+        const statusEl = document.getElementById('chat-network-status');
+
+        if (!navigator.onLine) {
+            if (statusEl) statusEl.innerHTML = '<span style="color: var(--warning-timer);">⚠️ Hors ligne - Connexion au serveur indisponible</span>';
+            return;
+        }
+
+        if (statusEl) statusEl.innerHTML = '<span style="color: var(--success);">🟢 En ligne (Discussion active)</span>';
+
+        const { data: messages, error } = await supabaseClient
+            .from('app_messages')
+            .select('*')
+            .order('created_at', { ascending: true })
+            .limit(50);
+
+        if (error) {
+            console.error("Erreur chargement messages :", error);
+            if (container) container.innerHTML = '<em style="color: var(--danger);">Erreur lors du chargement des messages.</em>';
+            return;
+        }
+
+        const userIds = [...new Set(messages.map(m => m.user_id))];
+        let profilesMap = {};
+        if (userIds.length > 0) {
+            const { data: profilesData } = await supabaseClient
+                .from('app_profiles')
+                .select('id, email, pseudo, full_name')
+                .in('id', userIds);
+            
+            if (profilesData) {
+                profilesData.forEach(p => {
+                    profilesMap[p.id] = p;
+                });
+            }
+        }
+
+        if (container) {
+            container.innerHTML = '';
+            if (!messages || messages.length === 0) {
+                container.innerHTML = '<em style="text-align: center; color: var(--text-muted); margin: auto;">Aucun message pour le moment. Laissez le premier message !</em>';
+            } else {
+                messages.forEach(msg => {
+                    const isMe = currentUser && msg.user_id === currentUser.id;
+                    const timeStr = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    const senderProfile = profilesMap[msg.user_id];
+                    let displayName = msg.email;
+                    if (senderProfile) {
+                        if (senderProfile.pseudo && senderProfile.pseudo.trim() !== '') {
+                            displayName = senderProfile.pseudo;
+                        } else if (senderProfile.full_name && senderProfile.full_name.trim() !== '') {
+                            displayName = senderProfile.full_name;
+                        }
+                    }
+
+                    const bubble = document.createElement('div');
+                    bubble.style.background = isMe ? 'linear-gradient(135deg, rgba(37, 99, 235, 0.35) 0%, rgba(29, 78, 216, 0.2) 100%)' : 'rgba(255, 255, 255, 0.04)';
+                    bubble.style.border = '1px solid ' + (isMe ? 'rgba(56, 189, 248, 0.4)' : 'var(--card-border)');
+                    bubble.style.borderRadius = isMe ? '14px 14px 2px 14px' : '14px 14px 14px 2px';
+                    bubble.style.padding = '10px 14px';
+                    bubble.style.maxWidth = '82%';
+                    bubble.style.alignSelf = isMe ? 'flex-end' : 'flex-start';
+
+                    let imageHtml = '';
+                    if (msg.image_url) {
+                        imageHtml = `<div style="margin-top: 6px;"><img src="${msg.image_url}" onclick="openLightbox('${msg.image_url}')" style="max-width: 100%; border-radius: 8px; max-height: 200px; object-fit: cover; cursor: pointer; border: 1px solid var(--card-border);"></div>`;
+                    }
+
+                    bubble.innerHTML = `
+                        <div style="font-size: 0.7rem; font-weight: 700; color: ${isMe ? 'var(--accent-blue)' : 'var(--text-muted)'}; margin-bottom: 2px;">
+                            ${isMe ? 'Moi (' + displayName + ')' : escapeHtml(displayName)}
+                        </div>
+                        <div style="font-size: 0.9rem; color: var(--text-highlight); word-break: break-word;">${escapeHtml(msg.message || '')}</div>
+                        ${imageHtml}
+                        <div style="font-size: 0.65rem; color: var(--text-muted); text-align: right; margin-top: 4px;">${timeStr}</div>
+                    `;
+                    container.appendChild(bubble);
+                });
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+    }
+
+    async function sendChatMessage() {
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+
+        if (!text && !selectedChatImageFile) return;
+        if (!currentUser) {
+            alert("Vous devez être connecté pour envoyer un message.");
+            return;
+        }
+
+        if (!navigator.onLine) {
+            alert("⚠️ Vous êtes hors ligne. Impossible d'envoyer le message pour le moment.");
+            return;
+        }
+
+        let imageUrl = '';
+
+        if (selectedChatImageFile) {
+            try {
+                const compressedBlob = await compressImage(selectedChatImageFile, 800, 0.7);
+                const fileName = `${currentUser.id}_${Date.now()}.jpg`;
+
+                const { data: uploadData, error: uploadError } = await supabaseClient.storage
+                    .from('chat_images')
+                    .upload(fileName, compressedBlob, { contentType: 'image/jpeg' });
+
+                if (uploadError) {
+                    alert("Erreur lors de l'envoi de l'image : " + uploadError.message);
+                    return;
+                }
+
+                const { data: urlData } = supabaseClient.storage
+                    .from('chat_images')
+                    .getPublicUrl(fileName);
+
+                imageUrl = urlData.publicUrl;
+            } catch (err) {
+                console.error("Erreur compression image :", err);
+            }
+        }
+
+        const { error } = await supabaseClient.from('app_messages').insert([{
+            user_id: currentUser.id,
+            email: currentUser.email,
+            message: text,
+            image_url: imageUrl
+        }]);
+
+        if (error) {
+            alert("Erreur lors de l'envoi : " + error.message);
+        } else {
+            input.value = '';
+            clearChatImage();
+            loadChatMessages();
+        }
+    }
+
+    function handleChatKeyPress(event) {
+        if (event.key === 'Enter') {
+            sendChatMessage();
+        }
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+
+    async function loadUserSubscriptionStatus() {
+        if (!currentUser) return;
+        const { data } = await supabaseClient
+            .from('app_profiles')
+            .select('subscription_expires_at, subscription_status, pending_discount, is_admin')
+            .eq('id', currentUser.id)
+            .single();
+
+        const statusEl = document.getElementById('user-sub-status-text');
+        
+        if (data && data.is_admin) {
+            statusEl.innerHTML = `<strong style="color: var(--success);">Accès illimité (Admin)</strong>`;
+        } 
+        else if (data && data.subscription_expires_at) {
+            const expiry = new Date(data.subscription_expires_at);
+            const now = new Date();
+            const isTrial = data.subscription_status === 'trial';
+
+            if (expiry > now) {
+                statusEl.innerHTML = `<strong style="color: ${isTrial ? 'var(--warning-timer)' : 'var(--success)'};">${isTrial ? '⚡ Période d\'essai gratuite' : '✓ Abonnement Actif'}</strong><br><span style="color:var(--text-muted); font-size:0.8rem;">Expire le : ${expiry.toLocaleDateString()}</span>`;
+            } else {
+                statusEl.innerHTML = `<strong style="color: var(--danger);">✗ Expiré</strong> <span style="color:var(--text-muted); font-size:0.8rem;">(depuis le ${expiry.toLocaleDateString()})</span>`;
+            }
+        } else {
+            statusEl.innerHTML = `<strong style="color: var(--danger);">✗ Expiré / Aucun abonnement</strong>`;
+        }
+
+        updateCalculatedAmount();
+    }
+
+    async function submitPaymentDeclaration() {
+        if (!currentUser) return;
+
+        const months = parseInt(document.getElementById('pay-months').value);
+        
+        let discount = (userProfile && userProfile.pending_discount) ? userProfile.pending_discount : 0;
+        const amount = Math.max(0, (months * 6000) - discount);
+
+        const mode = document.getElementById('pay-mode').value;
+        const txRef = document.getElementById('pay-tx-ref').value.trim();
+        const fileInput = document.getElementById('pay-proof-file');
+
+        if (!txRef) {
+            alert('Veuillez renseigner la référence de transaction (TX Ref).');
+            return;
+        }
+
+        let proofUrl = '';
+
+        if (fileInput && fileInput.files && fileInput.files[0]) {
+            const file = fileInput.files[0];
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${currentUser.id}_${Date.now()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            const { data: uploadData, error: uploadError } = await supabaseClient.storage
+                .from('payment_proofs')
+                .upload(filePath, file);
+
+            if (!uploadError && uploadData) {
+                const { data: urlData } = supabaseClient.storage
+                    .from('payment_proofs')
+                    .getPublicUrl(filePath);
+                
+                proofUrl = urlData ? urlData.publicUrl : '';
+            } else {
+                console.error("Erreur upload storage :", uploadError);
+                alert("Erreur lors de l'envoi de la preuve : " + (uploadError ? uploadError.message : 'inconnue'));
+            }
+        }
+
+        const { error } = await supabaseClient.from('app_payment_declarations').insert([{
+            user_id: currentUser.id,
+            months_count: months,
+            amount_paid: amount,
+            payment_mode: mode,
+            tx_reference: txRef,
+            proof_file_url: proofUrl,
+            status: 'PENDING'
+        }]);
+
+        if (error) {
+            alert('Erreur lors de la soumission : ' + error.message);
+        } else {
+            alert('Déclaration de paiement envoyée avec succès ! En attente de validation par l\'administrateur.');
+            document.getElementById('pay-tx-ref').value = '';
+            if (fileInput) fileInput.value = '';
+            navigateTo('view-dashboard');
+        }
+    }
+
+    async function loadUserReferrals() {
+        if (!currentUser) return;
+
+        const { data: referrals, error } = await supabaseClient
+            .from('app_referrals')
+            .select('*, app_profiles!app_referrals_filleul_id_fkey(email, created_at, pseudo, full_name)')
+            .eq('sponsor_id', currentUser.id);
+
+        const listContainer = document.getElementById('referrals-list');
+        const countEl = document.getElementById('ref-count');
+
+        if (error) {
+            console.error("Erreur chargement parrainages :", error);
+            if (listContainer) listContainer.innerHTML = '<em>Erreur de chargement.</em>';
+            return;
+        }
+
+        if (countEl) {
+            countEl.textContent = referrals ? referrals.length : 0;
+        }
+
+        if (listContainer) {
+            listContainer.innerHTML = '';
+            if (!referrals || referrals.length === 0) {
+                listContainer.innerHTML = '<em>Aucun filleul pour le moment. Partagez votre lien pour commencer !</em>';
+            } else {
+                referrals.forEach(ref => {
+                    const profile = ref.app_profiles;
+                    let displayName = profile ? profile.email : 'Utilisateur';
+                    if (profile) {
+                        if (profile.pseudo && profile.pseudo.trim() !== '') {
+                            displayName = `${profile.pseudo} (${profile.email})`;
+                        } else if (profile.full_name && profile.full_name.trim() !== '') {
+                            displayName = `${profile.full_name} (${profile.email})`;
+                        }
+                    }
+                    const dateInsc = ref.created_at ? new Date(ref.created_at).toLocaleDateString() : '';
+                    
+                    const item = document.createElement('div');
+                    item.style.background = 'rgba(255, 255, 255, 0.03)';
+                    item.style.border = '1px solid var(--card-border)';
+                    item.style.borderRadius = '10px';
+                    item.style.padding = '10px 12px';
+                    item.style.display = 'flex';
+                    item.style.justifyContent = 'space-between';
+                    item.style.alignItems = 'center';
+                    
+                    item.innerHTML = `
+                        <div>
+                            <div style="font-weight: 700; color: var(--text-highlight); font-size: 0.9rem;">${escapeHtml(displayName)}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">Inscrit le : ${dateInsc}</div>
+                        </div>
+                        <span style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.15); color: var(--success); padding: 4px 8px; border-radius: 6px; font-weight: bold;">Actif</span>
+                    `;
+                    listContainer.appendChild(item);
+                });
+            }
+        }
+    }
+
+    // --- AUDIO SYSTEM WEB API & BEEP ---
+    let audioCtx = null;
+
+    function getAudioContext() {
+        if (!audioCtx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) {
+                audioCtx = new AudioContext();
+            }
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        return audioCtx;
+    }
+
+    window.addEventListener('click', () => { getAudioContext(); }, { once: true });
+    window.addEventListener('touchstart', () => { getAudioContext(); }, { once: true });
+
+    function playBeepSound(freq = 880, duration = 0.3) {
+        try {
+            const ctx = getAudioContext();
+            if (!ctx) return;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            // Récupération correcte du volume (entre 0 et 100 converti en 0.0 et 1.0)
+            const volumeInput = localStorage.getItem('pref_volume');
+            const volume = (volumeInput !== null ? parseInt(volumeInput) : 80) / 100;
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime);
+            
+            // Application du volume réel sur le gain audio
+            gain.gain.setValueAtTime(volume * 0.8, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + duration);
+        } catch (e) {
+            console.log("Erreur Web Audio :", e);
+        }
+    }
+
+    function playAlertSound(type) {
+        const notifStatus = localStorage.getItem('pref_notifications') || 'enabled';
+        if (notifStatus === 'disabled' && type === 'claim') return;
+
+        // Lecture de la sonnerie choisie dans la liste déroulante (ou dans le localStorage)
+        let soundKey = 'beep';
+        
+        if (type === 'notif') {
+            const selectEl = document.getElementById('config-sound-notif');
+            soundKey = (selectEl && selectEl.value) ? selectEl.value : (localStorage.getItem('pref_sound_notif') || 'swift');
+        } else if (type === 'claim') {
+            const selectEl = document.getElementById('config-sound-claim');
+            soundKey = (selectEl && selectEl.value) ? selectEl.value : (localStorage.getItem('pref_sound_claim') || 'beep');
+        }
+
+        // Si l'utilisateur a choisi un son personnalisé
+        if (soundKey === 'custom') {
+            const customSrc = (type === 'notif') ? localStorage.getItem('pref_custom_notif') : localStorage.getItem('pref_custom_claim');
+            if (customSrc) {
+                const audio = new Audio(customSrc);
+                audio.volume = (parseInt(localStorage.getItem('pref_volume') || '80')) / 100;
+                audio.play().catch(e => console.log("Audio personnalisé bloqué :", e));
+                return;
+            }
+        }
+
+        // --- DÉFINITION DE FRÉQUENCES ET MÉLODIES DISTINCTES POUR CHAQUE OPTION ---
+        switch(soundKey) {
+            // Sons de Notification
+            case 'swift':
+                playBeepSound(523, 0.12); // Do
+                setTimeout(() => playBeepSound(659, 0.15), 100); // Mi
+                break;
+            case 'kalimba':
+                playBeepSound(440, 0.15); // La
+                setTimeout(() => playBeepSound(554, 0.15), 120); // Do#
+                setTimeout(() => playBeepSound(659, 0.25), 240); // Mi
+                break;
+            case 'sonar':
+                playBeepSound(261, 0.5); // Son grave type résonance
+                break;
+            case 'new_notif':
+                playBeepSound(784, 0.1);  // Sol
+                setTimeout(() => playBeepSound(1046, 0.2), 100); // Do très aigu
+                break;
+
+            // Sons de Claim
+            case 'beep':
+                playBeepSound(880, 0.25); // Bip classique aigu
+                break;
+            case 'wet':
+                playBeepSound(350, 0.1);  // Montée rapide
+                setTimeout(() => playBeepSound(700, 0.15), 70);
+                break;
+            case 'when':
+                playBeepSound(587, 0.2); 
+                setTimeout(() => playBeepSound(880, 0.25), 180);
+                break;
+            case 'exquisite':
+                playBeepSound(659, 0.12);
+                setTimeout(() => playBeepSound(830, 0.12), 120);
+                setTimeout(() => playBeepSound(987, 0.22), 240);
+                break;
+            case 'for_sure':
+                playBeepSound(493, 0.18);
+                setTimeout(() => playBeepSound(740, 0.28), 180);
+                break;
+            case 'intuition':
+                playBeepSound(523, 0.15);
+                setTimeout(() => playBeepSound(587, 0.15), 150);
+                setTimeout(() => playBeepSound(659, 0.25), 300);
+                break;
+            default:
+                playBeepSound(880, 0.2);
+                break;
+        }
+    }
+
+    function testSound(type) {
+        playAlertSound(type);
+    }
+
+    function saveNotificationConfig() {
+        const notifStatus = document.getElementById('config-notifications').value;
+        const soundNotif = document.getElementById('config-sound-notif').value;
+        const soundClaim = document.getElementById('config-sound-claim').value;
+        const volumeValue = document.getElementById('config-volume').value;
+
+        localStorage.setItem('pref_notifications', notifStatus);
+        localStorage.setItem('pref_sound_notif', soundNotif);
+        localStorage.setItem('pref_sound_claim', soundClaim);
+        localStorage.setItem('pref_volume', volumeValue);
+
+        const fileNotifInput = document.getElementById('file-custom-notif');
+        if (soundNotif === 'custom' && fileNotifInput.files && fileNotifInput.files[0]) {
+            const reader = new FileReader();
+            reader.readAsDataURL(fileNotifInput.files[0]);
+            reader.onload = function () {
+                localStorage.setItem('pref_custom_notif', reader.result);
+            };
+        }
+
+        const fileClaimInput = document.getElementById('file-custom-claim');
+        if (soundClaim === 'custom' && fileClaimInput.files && fileClaimInput.files[0]) {
+            const reader = new FileReader();
+            reader.readAsDataURL(fileClaimInput.files[0]);
+            reader.onload = function () {
+                localStorage.setItem('pref_custom_claim', reader.result);
+            };
+        }
+
+        alert('✅ Préférences enregistrées !');
+    }
+
+    function loadConfigUI() {
+        if (localStorage.getItem('pref_notifications')) {
+            document.getElementById('config-notifications').value = localStorage.getItem('pref_notifications');
+        }
+        if (localStorage.getItem('pref_sound_notif')) {
+            document.getElementById('config-sound-notif').value = localStorage.getItem('pref_sound_notif');
+            if (localStorage.getItem('pref_sound_notif') === 'custom') {
+                document.getElementById('group-custom-notif').style.display = 'flex';
+            }
+        }
+        if (localStorage.getItem('pref_sound_claim')) {
+            document.getElementById('config-sound-claim').value = localStorage.getItem('pref_sound_claim');
+            if (localStorage.getItem('pref_sound_claim') === 'custom') {
+                document.getElementById('group-custom-claim').style.display = 'flex';
+            }
+        }
+        if (localStorage.getItem('pref_volume')) {
+            document.getElementById('config-volume').value = localStorage.getItem('pref_volume');
+        }
+    }
+
+    function getSites() {
+        const saved = localStorage.getItem('faucet_sites');
+        if (saved) return JSON.parse(saved);
+        localStorage.setItem('faucet_sites', JSON.stringify(defaultSites));
+        return defaultSites;
+    }
+
+    function addNewSite() {
+        const nameInput = document.getElementById('new-site-name');
+        const urlInput = document.getElementById('new-site-url');
+        const name = nameInput.value.trim();
+        const url = urlInput.value.trim();
+
+        if (!name || !url) {
+            alert('Veuillez remplir le nom et l\'URL du site.');
+            return;
+        }
+
+        const sites = getSites();
+        const newId = name.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Date.now();
+        sites.push({ id: newId, name: name, url: url });
+        localStorage.setItem('faucet_sites', JSON.stringify(sites));
+
+        nameInput.value = '';
+        urlInput.value = '';
+        alert('✅ Faucet ajouté avec succès !');
+        render();
+    }
+
+    function getNextClaimTime(siteId) {
+        return localStorage.getItem('timer_' + siteId);
+    }
+
+    function openSpecificSite(siteId) {
+        if (!isSubscriptionValid()) {
+            showSubscriptionExpiredModal(userProfile ? userProfile.pending_discount || 0 : 0);
+            return;
+        }
+
+        const sites = getSites();
+        const site = sites.find(s => s.id === siteId);
+        if (!site) return;
+
+        const cooldownTime = 60 * 60 * 1000; // 1 heure 
+        const nextAvailableTime = Date.now() + cooldownTime;
+        localStorage.setItem('timer_' + siteId, nextAvailableTime);
+
+        const history = JSON.parse(localStorage.getItem('claims_history') || '[]');
+        history.push({ siteId: siteId, timestamp: Date.now() });
+        localStorage.setItem('claims_history', JSON.stringify(history));
+
+        if (!activeWindow || activeWindow.closed) {
+            activeWindow = window.open(site.url, 'faucetTab');
+        } else {
+            activeWindow.location.href = site.url;
+            activeWindow.focus();
+        }
+
+        const activeBox = document.getElementById('active-claim-box');
+        if (activeBox) {
+            activeBox.style.display = 'block';
+            document.getElementById('current-site-name').textContent = site.name;
+        }
+
+        render();
+    }
+
+    function proceedToNextSite() {
+        if (!isSubscriptionValid()) {
+            showSubscriptionExpiredModal(userProfile ? userProfile.pending_discount || 0 : 0);
+            return;
+        }
+
+        const sites = getSites();
+        const now = Date.now();
+        const availables = sites.filter(s => {
+            const t = getNextClaimTime(s.id);
+            return !t || now >= t;
+        });
+
+        if (availables.length > 0) {
+            openSpecificSite(availables[0].id);
+        } else {
+            document.getElementById('active-claim-box').style.display = 'none';
+            alert("🎉 Tous vos faucets disponibles ont été réclamés.");
+            playAlertSound('claim');
+        }
+        render();
+    }
+
+    async function renderAdminData() {
+        const { data: usersData } = await supabaseClient.from('app_profiles').select('*').order('created_at', { ascending: false });
+        const usersContainer = document.getElementById('admin-users-list');
+        const subscriptionsContainer = document.getElementById('admin-subscriptions-list');
+
+        if (usersData) {
+            if (usersContainer) {
+                usersContainer.innerHTML = '';
+                usersData.forEach(u => {
+                    const item = document.createElement('div');
+                    item.className = 'admin-item';
+                    item.innerHTML = `
+                        <div style="font-weight:bold; color:var(--text-highlight);">${u.email} ${u.pseudo ? '(' + u.pseudo + ')' : ''}</div>
+                        <div style="font-size:0.8rem; color:var(--text-muted);">Code : <code>${u.my_ref_code}</code> | Admin : ${u.is_admin ? '🛡️ Oui' : 'Non'}</div>
+                    `;
+                    usersContainer.appendChild(item);
+                });
+            }
+
+            if (subscriptionsContainer) {
+                subscriptionsContainer.innerHTML = '';
+                usersData.forEach(u => {
+                    const expiry = u.subscription_expires_at ? new Date(u.subscription_expires_at).toLocaleDateString() : 'Expiré / Aucun';
+                    const item = document.createElement('div');
+                    item.className = 'admin-item';
+                    item.innerHTML = `
+                        <div style="font-weight:bold; color:var(--text-highlight);">${u.email}</div>
+                        <div style="font-size:0.8rem; color:var(--text-muted);">Expire le : <strong>${expiry}</strong></div>
+                        <button class="btn btn-success" style="padding: 8px; font-size: 0.8rem; margin-top: 4px;" onclick="extendUserSubscription('${u.id}')">➕ Prolonger de 30 jours</button>
+                    `;
+                    subscriptionsContainer.appendChild(item);
+                });
+            }
+
+            if (document.getElementById('stat-total-users')) {
+                document.getElementById('stat-total-users').textContent = usersData.length;
+            }
+        }
+
+        const { data: pendingPayments } = await supabaseClient
+            .from('app_payment_declarations')
+            .select('*, app_profiles(email, pseudo)')
+            .eq('status', 'PENDING');
+
+        const paymentsContainer = document.getElementById('admin-payments-list');
+        if (paymentsContainer) {
+            paymentsContainer.innerHTML = '';
+            if (!pendingPayments || pendingPayments.length === 0) {
+                paymentsContainer.innerHTML = `<div class="card" style="text-align:center; color:var(--text-muted);">Aucun paiement en attente.</div>`;
+            } else {
+                pendingPayments.forEach(dec => {
+                    const proofLink = dec.proof_file_url ? `<a href="${dec.proof_file_url}" target="_blank" style="color:var(--warning-timer);">📎 Voir la preuve</a>` : 'Aucun fichier';
+                    const userDisplay = dec.app_profiles ? (dec.app_profiles.email + (dec.app_profiles.pseudo ? ' (' + dec.app_profiles.pseudo + ')' : '')) : 'Utilisateur';
+                    const card = document.createElement('div');
+                    card.className = 'admin-item';
+                    card.innerHTML = `
+                        <div style="font-weight:bold; color:var(--accent-blue);">${userDisplay}</div>
+                        <div style="font-size:0.85rem;">Durée : <strong>${dec.months_count} Mois</strong> | Montant : <strong style="color:var(--success);">${dec.amount_paid} Ar</strong></div>
+                        <div style="font-size:0.8rem; color:var(--text-muted);">Mode : ${dec.payment_mode}</div>
+                        <div style="font-size:0.8rem; color:var(--text-muted);">Ref TX : <strong>${dec.tx_reference}</strong></div>
+                        <div style="font-size:0.8rem; color:var(--warning-timer);">${proofLink}</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px;">
+                            <button class="btn btn-success" style="padding:8px; font-size:0.8rem;" onclick="adminValidatePayment('${dec.id}', '${dec.user_id}', ${dec.months_count})">✓ Valider</button>
+                            <button class="btn btn-danger" style="padding:8px; font-size:0.8rem;" onclick="adminRejectPayment('${dec.id}')">✗ Rejeter</button>
+                        </div>
+                    `;
+                    paymentsContainer.appendChild(card);
+                });
+            }
+        }
+
+        const { data: validatedPayments } = await supabaseClient
+            .from('app_payment_declarations')
+            .select('amount_paid')
+            .eq('status', 'VALIDATED');
+
+        let totalRevenue = 0;
+        if (validatedPayments) {
+            validatedPayments.forEach(p => totalRevenue += p.amount_paid);
+        }
+        if (document.getElementById('stat-total-revenue')) {
+            document.getElementById('stat-total-revenue').textContent = totalRevenue.toLocaleString('fr-FR') + ' Ar';
+        }
+    }
+
+    async function extendUserSubscription(userId) {
+        const newExpiry = new Date();
+        newExpiry.setDate(newExpiry.getDate() + 30);
+
+        const { error } = await supabaseClient
+            .from('app_profiles')
+            .update({ subscription_expires_at: newExpiry.toISOString(), subscription_status: 'active' })
+            .eq('id', userId);
+
+        if (error) {
+            alert("Erreur : " + error.message);
+        } else {
+            alert("Abonnement prolongé de 30 jours avec succès !");
+            renderAdminData();
+        }
+    }
+
+    async function adminValidatePayment(declarationId, userId, months) {
+        await supabaseClient
+            .from('app_payment_declarations')
+            .update({ status: 'VALIDATED', validated_at: new Date().toISOString() })
+            .eq('id', declarationId);
+
+        const { data: profileData } = await supabaseClient
+            .from('app_profiles')
+            .select('subscription_expires_at, subscription_status, pending_discount')
+            .eq('id', userId)
+            .single();
+
+        const wasTrial = (profileData && profileData.subscription_status === 'trial');
+
+        let baseDate = new Date();
+        if (profileData && profileData.subscription_expires_at) {
+            const currentExpiry = new Date(profileData.subscription_expires_at);
+            if (currentExpiry > baseDate) {
+                baseDate = currentExpiry;
+            }
+        }
+        baseDate.setMonth(baseDate.getMonth() + months);
+
+        await supabaseClient
+            .from('app_profiles')
+            .update({ 
+                subscription_expires_at: baseDate.toISOString(), 
+                subscription_status: 'active',
+                pending_discount: 0
+            })
+            .eq('id', userId);
+
+        const { data: refData } = await supabaseClient
+            .from('app_referrals')
+            .select('sponsor_id, eligibility_ends_at')
+            .eq('filleul_id', userId)
+            .single();
+
+        if (refData && refData.sponsor_id) {
+            const eligibilityEnds = new Date(refData.eligibility_ends_at);
+            const now = new Date();
+
+            if (now <= eligibilityEnds) {
+                const sponsorId = refData.sponsor_id;
+
+                const { data: sponsorProfile } = await supabaseClient
+                    .from('app_profiles')
+                    .select('pending_discount')
+                    .eq('id', sponsorId)
+                    .single();
+
+                let currentDiscount = sponsorProfile ? (sponsorProfile.pending_discount || 0) : 0;
+                
+                if (wasTrial) {
+                    currentDiscount += 3000;
+                } else {
+                    currentDiscount += 600;
+                }
+
+                await supabaseClient
+                    .from('app_profiles')
+                    .update({ pending_discount: currentDiscount })
+                    .eq('id', sponsorId);
+            }
+        }
+
+        alert('Paiement validé ! Abonnement mis à jour et commission de parrainage attribuée.');
+        renderAdminData();
+    }
+
+    async function adminRejectPayment(declarationId) {
+        await supabaseClient
+            .from('app_payment_declarations')
+            .update({ status: 'REJECTED' })
+            .eq('id', declarationId);
+
+        alert('Paiement rejeté.');
+        renderAdminData();
+    }
+function render() {
+        const sites = getSites();
+        const now = Date.now();
+        const history = JSON.parse(localStorage.getItem('claims_history') || '[]');
+        
+        const todayStart = new Date().setHours(0,0,0,0);
+        const weekStart = now - (7 * 24 * 60 * 60 * 1000);
+        
+        const dateObj = new Date();
+        const monthStart = new Date(dateObj.getFullYear(), dateObj.getMonth(), 1).getTime();
+
+        if (document.getElementById('stat-today')) document.getElementById('stat-today').textContent = history.filter(h => h.timestamp >= todayStart).length;
+        if (document.getElementById('stat-week')) document.getElementById('stat-week').textContent = history.filter(h => h.timestamp >= weekStart).length;
+        if (document.getElementById('stat-month')) document.getElementById('stat-month').textContent = history.filter(h => h.timestamp >= monthStart).length;
+
+        const container = document.getElementById('faucet-cards-container');
+        if (container) {
+            container.innerHTML = '';
+            let hasANewAvailableSite = false;
+
+            sites.forEach(site => {
+                const nextTime = getNextClaimTime(site.id);
+                const isReady = !nextTime || now >= nextTime;
+
+                // Gestion de l'alerte dès qu'un site se libère
+                if (isReady) {
+                    if (notifiedSitesMap[site.id] === true) {
+                        hasANewAvailableSite = true;
+                        notifiedSitesMap[site.id] = false;
+                    }
+                } else {
+                    notifiedSitesMap[site.id] = true;
+                }
+
+                let statusHTML = '';
+                let actionBtnHTML = '';
+                let progressBarHTML = '';
+
+                const totalCooldown = 10 * 1000; // Ajusté temporairement à 10s pour le test
+
+                if (isReady) {
+                    statusHTML = `<div style="font-size: 0.8rem; color: var(--accent-blue); font-weight: 600;">🔵 Claim disponible</div>`;
+                    actionBtnHTML = `<button class="btn btn-primary" style="padding: 10px 18px; font-size: 0.85rem; width: auto;" onclick="openSpecificSite('${site.id}')">OUVRIR</button>`;
+                    progressBarHTML = `<div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 100%;"></div></div>`;
+                } else {
+                    const rem = Math.floor((nextTime - now) / 1000);
+                    const m = Math.floor(rem / 60);
+                    const s = rem % 60;
+                    const timerStr = `${m}m ${s < 10 ? '0' : ''}${s}s`;
+
+                    const elapsed = totalCooldown - (nextTime - now);
+                    const pct = Math.max(0, Math.min(100, Math.floor((elapsed / totalCooldown) * 100)));
+
+                    statusHTML = `<div style="font-size: 0.8rem; color: var(--warning-timer); font-weight: 600;">⏳ Attente (${timerStr})</div>`;
+                    actionBtnHTML = `<button class="btn" style="padding: 10px 14px; font-size: 0.85rem; width: auto; background: rgba(168, 85, 247, 0.1); color: var(--warning-timer); border: 1px solid rgba(168, 85, 247, 0.25); cursor: not-allowed;" disabled>PATIENTER</button>`;
+                    progressBarHTML = `<div class="progress-bar-bg"><div class="progress-bar-fill-waiting" style="width: ${pct}%;"></div></div>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.style.padding = '14px 16px';
+
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: var(--accent-blue);">
+                                🌐
+                            </div>
+                            <div>
+                                <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.05rem; color: var(--text-highlight);">${site.name}</div>
+                                ${statusHTML}
+                            </div>
+                        </div>
+                        ${actionBtnHTML}
+                    </div>
+                    ${progressBarHTML}
+                `;
+                container.appendChild(card);
+            });
+
+            if (hasANewAvailableSite) {
+                playAlertSound('claim');
+            }
+        }
+    }
+    function copyRefLink() {
+        const link = document.getElementById('my-ref-link');
+        link.select();
+        document.execCommand('copy');
+        alert('Lien de parrainage copié !');
+    }
+
+    function shareRefLink() {
+        if (navigator.share) {
+            navigator.share({
+                title: 'Ray Assist 2.0',
+                text: 'Rejoins-moi sur Ray Assist 2.0 !',
+                url: document.getElementById('my-ref-link').value
+            });
+        } else {
+            copyRefLink();
+        }
+    }
+
+
+
+    setInterval(render, 1000);
+    render();
+</script>
+</body>
+</html>
